@@ -22,7 +22,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/assignments")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
 @Tag(name = "Assignments", description = "Teacher and student assignment endpoints")
 public class AssignmentController {
 

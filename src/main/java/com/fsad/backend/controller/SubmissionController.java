@@ -27,7 +27,6 @@ import java.net.URI;
 
 @RestController
 @RequestMapping("/api/submissions")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
 @Tag(name = "Submissions", description = "Student submission and teacher grading endpoints")
 public class SubmissionController {
 
