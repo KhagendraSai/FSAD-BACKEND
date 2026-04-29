@@ -37,24 +37,53 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            // Link the CORS configuration source defined below
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Explicitly permit all OPTIONS requests (CORS Preflight)
+                // 1. Permit Preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                
+                // 2. Permit Root and Swagger (Using your custom property paths)
+                .requestMatchers(
+                    "/",
+                    "/swagger-ui.html",
+                    "/swagger-ui/**",
+                    "/api-docs/**",
+                    "/v3/api-docs/**"
+                ).permitAll()
+
+                // 3. Permit Auth and API endpoints
                 .requestMatchers(
                     "/api/auth/**",
-                    "/api/**",
-                    "/api-docs/**",
-                    "/swagger-ui.html",
-                    "/swagger-ui/**"
+                    "/api/**"
                 ).permitAll()
-                .anyRequest().authenticated() // Secure other endpoints once connected
+
+                // 4. Secure everything else
+                .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:5173", 
+            "http://localhost:3000",
+            "https://fsad-frontend-deployment.up.railway.app"
+        ));
+        
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     @Bean
@@ -64,9 +93,8 @@ public class SecurityConfig {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        // Updated to prevent potential errors with empty strings in some Spring versions
         return username -> User.withUsername(username)
-                .password("$2a$10$8K1p/a0px1E5/G.3pPj6W.eN9pL.uN.uN.uN.uN.uN.uN.uN.uN.") // dummy hash
+                .password("$2a$10$8K1p/a0px1E5/G.3pPj6W.eN9pL.uN.uN.uN.uN.uN.uN.uN.uN.") 
                 .authorities("USER")
                 .build();
     }
@@ -82,26 +110,5 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        
-        // ADDED: Your Railway Frontend URL
-        configuration.setAllowedOrigins(List.of(
-            "http://localhost:5173", 
-            "http://localhost:3000",
-            "https://fsad-frontend-deployment.up.railway.app"
-        ));
-        
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L); // Cache preflight for 1 hour
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
     }
 }
